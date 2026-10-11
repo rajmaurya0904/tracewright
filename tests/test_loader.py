@@ -1,5 +1,7 @@
 from pathlib import Path
 
+import pytest
+
 from tracewright.events import (
     NetworkCallEvent,
     ShellCommandEvent,
@@ -61,14 +63,10 @@ def test_load_session_malformed_json_raises_with_line_number(
         '"host": "h2", "method": "POST"}\n'
     )
 
-    import pytest
-
     with pytest.raises(ValueError, match=r"malformed JSON on line 2"):
         load_session(session_file)
 
 
 def test_load_session_missing_file_raises_file_not_found_error() -> None:
-    import pytest
-
     with pytest.raises(FileNotFoundError):
         load_session("/nonexistent/path/session.jsonl")
