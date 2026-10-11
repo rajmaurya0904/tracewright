@@ -94,3 +94,15 @@ def test_load_session_unknown_event_type_raises_with_line_number(tmp_path: Path)
 
     with pytest.raises(ValueError, match=r"invalid event on line 2: unknown event type 'bogus'"):
         load_session(session_file)
+
+
+def test_load_session_non_object_line_raises_with_line_number(tmp_path: Path) -> None:
+    session_file = tmp_path / "session.jsonl"
+    session_file.write_text(
+        '{"type": "network_call", "timestamp": "t", "actor": "a", '
+        '"host": "h", "method": "GET"}\n'
+        "[1, 2]\n"
+    )
+
+    with pytest.raises(ValueError, match=r"invalid event on line 2: event must be a JSON object"):
+        load_session(session_file)
