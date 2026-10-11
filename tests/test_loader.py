@@ -82,3 +82,15 @@ def test_load_session_truncated_final_line_raises_with_line_number(tmp_path: Pat
 
     with pytest.raises(ValueError, match=r"malformed JSON on line 2"):
         load_session(session_file)
+
+
+def test_load_session_unknown_event_type_raises_with_line_number(tmp_path: Path) -> None:
+    session_file = tmp_path / "session.jsonl"
+    session_file.write_text(
+        '{"type": "network_call", "timestamp": "t", "actor": "a", '
+        '"host": "h", "method": "GET"}\n'
+        '{"type": "bogus", "timestamp": "t2", "actor": "a"}\n'
+    )
+
+    with pytest.raises(ValueError, match=r"invalid event on line 2: unknown event type 'bogus'"):
+        load_session(session_file)
