@@ -9,6 +9,7 @@ from .events import (
     ShellCommandEvent,
     ToolCallEvent,
 )
+from .guardrail import Violation
 
 _KIND_LABELS: dict[str, str] = {
     ToolCallEvent.type: "TOOL",
@@ -36,13 +37,27 @@ def describe_event(event: Event) -> str:
     return f"{_KIND_LABELS[event.type]} {_summarize(event)}"
 
 
-def render_timeline(events: list[Event]) -> str:
+def render_timeline(events: list[Event], violations: list[Violation] | None = None) -> str:
     """Format events chronologically as a human-readable timeline.
 
     Events are sorted by timestamp. Each line shows the event's timestamp,
     kind, and a short kind-specific summary, e.g.
     `2026-01-01T00:00:00Z WRITE foo.py`.
+
+    If `violations` is given, each flagged event's line is prefixed with
+    `[VIOLATION: rule-name]`. Violations are matched to events by identity,
+    so pass the violations produced by `check_events` on the same events.
     """
+    flagged: dict[int, str] = {}
+    for violation in violations or []:
+        flagged.setdefault(id(violation.event), violation.rule)
+
     sorted_events = sorted(events, key=lambda e: e.timestamp)
-    lines = [f"{event.timestamp} {describe_event(event)}" for event in sorted_events]
+    lines = []
+    for event in sorted_events:
+        line = f"{event.timestamp} {describe_event(event)}"
+        rule = flagged.get(id(event))
+        if rule is not None:
+            line = f"[VIOLATION: {rule}] {line}"
+        lines.append(line)
     return "\n".join(lines)

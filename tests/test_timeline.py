@@ -3,6 +3,7 @@ from tracewright.events import (
     NetworkCallEvent,
     ShellCommandEvent,
 )
+from tracewright.guardrail import Violation
 from tracewright.timeline import render_timeline
 
 EVENTS = [
@@ -80,3 +81,14 @@ def test_render_timeline_sorts_out_of_order_events() -> None:
     assert lines[0].startswith("2026-01-01T00:00:00Z")
     assert lines[1].startswith("2026-01-01T00:00:01Z")
     assert lines[2].startswith("2026-01-01T00:00:02Z")
+
+
+def test_render_timeline_prefixes_violating_events_with_rule() -> None:
+    """Flagged events get a [VIOLATION: rule] prefix; other lines are unchanged."""
+    violations = [Violation(event=EVENTS[2], rule="network-call-denied", message="denied")]
+    lines = render_timeline(EVENTS, violations).split("\n")
+    assert lines[0] == "2026-01-01T00:00:00Z WRITE /tmp/x.py"
+    assert lines[1] == "2026-01-01T00:00:01Z SHELL rm -rf build"
+    assert lines[2] == (
+        "[VIOLATION: network-call-denied] 2026-01-01T00:00:02Z NET GET https://api.example.com"
+    )
