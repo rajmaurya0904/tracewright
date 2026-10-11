@@ -1,41 +1,36 @@
-# Agent run replay and guardrail audit
+# tracewright
 
-Replays recorded agent sessions (tool calls, shell commands, file edits) as a readable timeline and flags actions outside a configurable policy, such as writes outside the repo or network calls. For teams that want an audit trail without a full runtime.
+**Replays a recorded agent session as a readable timeline and flags the actions that broke your policy — for teams who want an audit trail without wiring up a sandbox.**
 
-## Install
+An agent ran for forty minutes and left you a JSONL log. Somewhere in those
+hundreds of lines it shelled out to something you would never have approved,
+wrote to a path outside the repo, and phoned home. Reading the raw log to find
+out which is miserable. `tracewright` turns the log into six readable lines and
+tells you exactly which three were the problem.
 
-```bash
-pip install -e ".[dev]"
+## Real terminal output
+
+```console
+$ tracewright replay examples/session.jsonl
+2026-01-01T00:00:00Z TOOL Read
+2026-01-01T00:00:01Z SHELL pytest -q
+2026-01-01T00:00:02Z WRITE ./tracewright/cli.py
+2026-01-01T00:00:03Z SHELL rm -rf build
+2026-01-01T00:00:04Z WRITE /etc/hosts
+2026-01-01T00:00:05Z NET GET api.example.com
+
+$ tracewright audit examples/session.jsonl --policy examples/policy.yaml
+[shell-command-denied] SHELL rm -rf build: shell command 'rm -rf build' does not match allowed prefixes ['git', 'pytest', 'ruff']
+[write-outside-repo] WRITE /etc/hosts: write to '/etc/hosts' is outside allowed prefixes ['.']
+[network-call-denied] NET GET api.example.com: network call to 'api.example.com' is denied: network access is disabled by policy
+
+$ echo $?
+1
 ```
 
-## Usage
-
-Sessions are JSONL files with one event per line. Each event has a `type` of `tool_call`, `shell_command`, `file_edit`, or `network_call`, plus a timestamp and actor.
-
-```bash
-# Print a recorded session as a timeline, one line per event
-tracewright replay path/to/session.jsonl
-
-# Mark each event that breaks a policy, inline in the timeline
-tracewright replay path/to/session.jsonl --policy path/to/policy.yaml
-
-# Show only the events that break the policy (requires --policy)
-tracewright replay path/to/session.jsonl --policy path/to/policy.yaml --only-violations
-
-# Audit a session against a policy; exits 1 if any violation is found
-tracewright audit path/to/session.jsonl --policy path/to/policy.yaml
-```
-
-Options:
-
-- `--policy FILE`: a YAML (`.yaml`/`.yml`) or TOML (`.toml`) guardrail policy. Required for `audit`; optional for `replay`.
-- `--only-violations`: `replay` only. Hides every event except the ones flagged by `--policy`.
-
-## Example
-
-The repo ships a sample session and policy in `examples/`. Run these from the repository root.
-
-`examples/policy.yaml` allows writes under `.`, denies all network calls, and only allows shell commands starting with `git`, `pytest`, or `ruff`:
+That is the shipped example in `examples/`, run from the repository root. The
+policy there allows writes anywhere inside the repo, denies all outbound
+network calls, and permits only `git`, `pytest` and `ruff`:
 
 ```yaml
 allowed_write_prefixes:
@@ -48,67 +43,80 @@ allowed_shell_prefixes:
   - ruff
 ```
 
-Replay the session as a timeline:
+## Install
+
+Not on PyPI, so install it from a clone:
 
 ```bash
+pip install -e .
+```
+
+## Usage
+
+A session is a JSONL file, one event per line, each with a `type` of
+`tool_call`, `shell_command`, `file_edit` or `network_call` plus a timestamp
+and an actor.
+
+```bash
+# Read the session as a timeline, one line per event
 tracewright replay examples/session.jsonl
-```
 
-```text
-2026-01-01T00:00:00Z TOOL Read
-2026-01-01T00:00:01Z SHELL pytest -q
-2026-01-01T00:00:02Z WRITE ./tracewright/cli.py
-2026-01-01T00:00:03Z SHELL rm -rf build
-2026-01-01T00:00:04Z WRITE /etc/hosts
-2026-01-01T00:00:05Z NET GET api.example.com
-```
+# Same timeline, with policy breaches marked inline
+tracewright replay examples/session.jsonl --policy examples/policy.yaml
 
-Show only the events that break the policy:
-
-```bash
+# Just the breaches, nothing else
 tracewright replay examples/session.jsonl --policy examples/policy.yaml --only-violations
+
+# Gate a build: prints each violation with its rule, exits 1 if there are any
+tracewright audit examples/session.jsonl --policy examples/policy.yaml
 ```
 
-```text
-[VIOLATION: shell-command-denied] 2026-01-01T00:00:03Z SHELL rm -rf build
-[VIOLATION: write-outside-repo] 2026-01-01T00:00:04Z WRITE /etc/hosts
-[VIOLATION: network-call-denied] 2026-01-01T00:00:05Z NET GET api.example.com
-```
+## How it works
 
-Audit the session. Each violation is listed with its rule, and the command exits 1:
+| Event type | Checked against | Rule on failure |
+| --- | --- | --- |
+| `file_edit` | `allowed_write_prefixes` | `write-outside-repo` |
+| `shell_command` | `allowed_shell_prefixes` | `shell-command-denied` |
+| `network_call` | `deny_network`, `allowed_network_hosts` | `network-call-denied` |
+| `tool_call` | nothing — shown in the timeline only | — |
+
+- The policy is a YAML (`.yaml`/`.yml`) or TOML (`.toml`) file with those four
+  optional keys. Defaults are default-deny: empty allowlists permit nothing,
+  and `deny_network` is `true`.
+- Write prefixes are compared path-wise after normalising the recorded path.
+  `.` and `./` both mean the repository root, so `src/app.py` is allowed while
+  `/etc/hosts` and `../outside.txt` are flagged. A prefix naming a
+  subdirectory matches whole segments, so `src` matches `src/app.py` but not
+  `srcfoo.py`.
+- Shell prefixes are plain string matching, so `git` also matches `gitk`.
+- An unknown event `type`, a missing field, or a line that is not a JSON
+  object stops the load and reports the line number. Unknown policy keys,
+  wrong value types and empty policy files are errors too.
+
+## Limitations
+
+- `audit` exits 1 when it finds violations, and also exits 1 on a missing file
+  or a malformed session or policy. The difference is that real errors print an
+  `error:` message on stderr, so in CI treat any stderr output as a failure
+  rather than a finding. Bad arguments exit 2. `replay` always exits 0, even
+  when `--policy` marks violations — use `audit` to gate a build.
+- Nothing is enforced at runtime. This reads a log after the fact; it cannot
+  stop an agent mid-run.
+- It does not produce the log. You have to record the session into the JSONL
+  shape yourself.
+- `tool_call` events are never policy-checked, so a tool that writes files or
+  opens sockets slips past unless it is also recorded as a `file_edit` or
+  `network_call`.
+- Shell checking is prefix matching on the recorded command string, not shell
+  parsing. `git status; rm -rf /` passes a `git` allowlist.
+
+## Development
 
 ```bash
-tracewright audit examples/session.jsonl --policy examples/policy.yaml
-echo $?   # 1
+pip install -e ".[dev]"
+pytest -q
+ruff check .
 ```
-
-```text
-[shell-command-denied] SHELL rm -rf build: shell command 'rm -rf build' does not match allowed prefixes ['git', 'pytest', 'ruff']
-[write-outside-repo] WRITE /etc/hosts: write to '/etc/hosts' is outside allowed prefixes ['.']
-[network-call-denied] NET GET api.example.com: network call to 'api.example.com' is denied: network access is disabled by policy
-```
-
-Run `audit` against a clean session and the command exits 0 with `no violations found; session complies with policy`.
-
-## FAQ
-
-**Which event types are supported?**
-Four kinds: `tool_call`, `shell_command`, `file_edit`, and `network_call`. `tool_call` events appear in the timeline but the policy does not check them. `shell_command` is checked against `allowed_shell_prefixes`, `file_edit` against `allowed_write_prefixes`, and `network_call` against `deny_network` and `allowed_network_hosts`. An unknown `type`, a missing field, or a line that is not a JSON object stops the load and reports the line number.
-
-**What does a policy file look like?**
-A YAML (`.yaml`/`.yml`) or TOML (`.toml`) file with these optional keys:
-
-- `allowed_write_prefixes`: list of path prefixes that writes may target. Default: `[]`, so no writes are allowed.
-- `deny_network`: boolean. Default: `true`.
-- `allowed_network_hosts`: list of hosts allowed when `deny_network` is `false`. Default: `[]`.
-- `allowed_shell_prefixes`: list of command prefixes that may run. Default: `[]`, so no commands are allowed.
-
-Unknown keys, wrong value types, and empty files are errors. Write prefixes are compared path-wise: the recorded path is normalised first, so `.` and `./` both mean the repository root and match any path inside it (`src/app.py`, `./src/app.py`, `README.md`), while absolute paths like `/etc/hosts` and paths that climb out with `../outside.txt` are flagged. A prefix naming a subdirectory matches whole segments only, so `src` matches `src/app.py` but not `srcfoo.py`. Shell prefixes are still plain string matching and so match partial words: `git` also matches `gitk`.
-
-**What exit codes does `audit` use in CI?**
-`audit` exits 0 when no violations are found and 1 when any are found. Violations are printed to stdout. Other errors, such as a missing file or a malformed session or policy, also exit 1, with an `error:` message on stderr. To tell them apart in CI, treat any stderr output as an error. Bad command-line arguments exit 2.
-
-`replay` exits 0 on success, even when `--policy` marks violations. Use `audit` to gate a build.
 
 ## License
 
