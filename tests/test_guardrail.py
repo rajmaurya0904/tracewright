@@ -118,3 +118,58 @@ def test_clean_session_produces_zero_violations() -> None:
     ]
 
     assert check_events(events, policy) == []
+
+
+def _write(path: str) -> FileEditEvent:
+    return FileEditEvent(
+        timestamp="2026-01-01T00:00:00Z",
+        actor="agent-1",
+        path=path,
+        diff="-old\n+new",
+    )
+
+
+def test_dot_prefix_allows_a_plain_relative_path() -> None:
+    """A write prefix of "." means the repo root, not a literal leading dot."""
+    policy = Policy(allowed_write_prefixes=["."])
+
+    assert check_events([_write("src/app.py")], policy) == []
+
+
+def test_dot_prefix_allows_dot_slash_and_nested_relative_paths() -> None:
+    policy = Policy(allowed_write_prefixes=["."])
+    events = [_write("./src/app.py"), _write("README.md"), _write("a/b/../c.py")]
+
+    assert check_events(events, policy) == []
+
+
+def test_dot_prefix_still_flags_absolute_path() -> None:
+    policy = Policy(allowed_write_prefixes=["."])
+
+    violations = check_events([_write("/etc/hosts")], policy)
+
+    assert len(violations) == 1
+    assert violations[0].rule == "write-outside-repo"
+    assert violations[0].event.path == "/etc/hosts"
+
+
+def test_dot_prefix_still_flags_path_climbing_out_of_repo() -> None:
+    policy = Policy(allowed_write_prefixes=["."])
+
+    violations = check_events([_write("../outside.txt")], policy)
+
+    assert len(violations) == 1
+    assert violations[0].rule == "write-outside-repo"
+    assert violations[0].event.path == "../outside.txt"
+
+
+def test_subdirectory_prefix_matches_whole_path_segments_only() -> None:
+    policy = Policy(allowed_write_prefixes=["src"])
+
+    assert check_events([_write("src/app.py")], policy) == []
+    assert check_events([_write("./src/app.py")], policy) == []
+
+    violations = check_events([_write("srcfoo.py")], policy)
+
+    assert len(violations) == 1
+    assert violations[0].rule == "write-outside-repo"

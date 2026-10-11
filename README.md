@@ -103,7 +103,7 @@ A YAML (`.yaml`/`.yml`) or TOML (`.toml`) file with these optional keys:
 - `allowed_network_hosts`: list of hosts allowed when `deny_network` is `false`. Default: `[]`.
 - `allowed_shell_prefixes`: list of command prefixes that may run. Default: `[]`, so no commands are allowed.
 
-Unknown keys, wrong value types, and empty files are errors. Prefix matching is plain string matching against the path or command recorded in the event. A repo-relative path must match the form it was recorded in, so `.` does not match `src/app.py` and that write is flagged. Use `./` in the policy and record paths as `./src/app.py`. Shell prefixes also match partial words, so `git` also matches `gitk`.
+Unknown keys, wrong value types, and empty files are errors. Write prefixes are compared path-wise: the recorded path is normalised first, so `.` and `./` both mean the repository root and match any path inside it (`src/app.py`, `./src/app.py`, `README.md`), while absolute paths like `/etc/hosts` and paths that climb out with `../outside.txt` are flagged. A prefix naming a subdirectory matches whole segments only, so `src` matches `src/app.py` but not `srcfoo.py`. Shell prefixes are still plain string matching and so match partial words: `git` also matches `gitk`.
 
 **What exit codes does `audit` use in CI?**
 `audit` exits 0 when no violations are found and 1 when any are found. Violations are printed to stdout. Other errors, such as a missing file or a malformed session or policy, also exit 1, with an `error:` message on stderr. To tell them apart in CI, treat any stderr output as an error. Bad command-line arguments exit 2.
