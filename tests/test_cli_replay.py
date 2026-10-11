@@ -57,3 +57,10 @@ def test_replay_only_violations_prints_one_line_per_violation() -> None:
     for line in lines:
         assert any(f"[VIOLATION: {v.rule}]" in line for v in violations)
     assert "TOOL" not in result.stdout
+
+
+def test_replay_only_violations_requires_policy() -> None:
+    result = _run("replay", str(VIOLATIONS_FIXTURE), "--only-violations")
+
+    assert result.returncode == 2
+    assert "--only-violations requires --policy" in result.stderr
