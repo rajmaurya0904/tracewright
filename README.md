@@ -10,7 +10,26 @@ pip install -e ".[dev]"
 
 ## Usage
 
-TODO: fill in as the build loop lands the core feature.
+Sessions are JSONL files with one event per line. Each event has a `type` of `tool_call`, `shell_command`, `file_edit`, or `network_call`, plus a timestamp and actor.
+
+```bash
+# Print a recorded session as a timeline, one line per event
+agent-audit replay path/to/session.jsonl
+
+# Mark each event that breaks a policy, inline in the timeline
+agent-audit replay path/to/session.jsonl --policy path/to/policy.yaml
+
+# Show only the events that break the policy (requires --policy)
+agent-audit replay path/to/session.jsonl --policy path/to/policy.yaml --only-violations
+
+# Audit a session against a policy; exits 1 if any violation is found
+agent-audit audit path/to/session.jsonl --policy path/to/policy.yaml
+```
+
+Options:
+
+- `--policy FILE`: a YAML (`.yaml`/`.yml`) or TOML (`.toml`) guardrail policy. Required for `audit`; optional for `replay`.
+- `--only-violations`: `replay` only. Hides every event except the ones flagged by `--policy`.
 
 ## Example
 
