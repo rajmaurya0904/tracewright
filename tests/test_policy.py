@@ -78,3 +78,11 @@ def test_load_policy_empty_file_raises(tmp_path: Path) -> None:
 
     with pytest.raises(ValueError, match="policy file is empty"):
         load_policy(policy_file)
+
+
+def test_load_policy_comments_only_yaml_raises(tmp_path: Path) -> None:
+    policy_file = tmp_path / "policy.yaml"
+    policy_file.write_text("# allowed_write_prefixes: ['.']\n")
+
+    with pytest.raises(ValueError, match="policy file is empty"):
+        load_policy(policy_file)

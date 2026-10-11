@@ -62,7 +62,9 @@ def load_policy(path: str | PathLike[str]) -> Policy:
         raise ValueError("policy file is empty")
 
     if suffix in (".yaml", ".yml"):
-        data = yaml.safe_load(text) or {}
+        data = yaml.safe_load(text)
+        if data is None:
+            raise ValueError("policy file is empty")
     elif suffix == ".toml":
         data = tomllib.loads(text)
     else:
