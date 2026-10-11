@@ -13,7 +13,15 @@ from .timeline import describe_event, render_timeline
 
 def _replay(args: argparse.Namespace) -> int:
     events = load_session(args.session_file)
-    print(render_timeline(events))
+    violations = None
+    if args.policy is not None:
+        violations = check_events(events, load_policy(args.policy))
+    if args.only_violations:
+        flagged = {id(violation.event) for violation in violations or []}
+        events = [event for event in events if id(event) in flagged]
+    output = render_timeline(events, violations)
+    if output:
+        print(output)
     return 0
 
 
@@ -39,6 +47,15 @@ def build_parser() -> argparse.ArgumentParser:
         "replay", help="Print a recorded session as a human-readable timeline"
     )
     replay_parser.add_argument("session_file", help="Path to a JSONL session recording")
+    replay_parser.add_argument(
+        "--policy",
+        help="Path to a YAML or TOML guardrail policy; flagged events are marked in the timeline",
+    )
+    replay_parser.add_argument(
+        "--only-violations",
+        action="store_true",
+        help="Show only events that violate --policy (requires --policy)",
+    )
     replay_parser.set_defaults(func=_replay)
 
     audit_parser = subparsers.add_parser(
@@ -56,6 +73,8 @@ def build_parser() -> argparse.ArgumentParser:
 def main(argv: list[str] | None = None) -> int:
     parser = build_parser()
     args = parser.parse_args(argv)
+    if args.command == "replay" and args.only_violations and args.policy is None:
+        parser.error("--only-violations requires --policy")
     try:
         return args.func(args)
     except (OSError, ValueError) as e:
