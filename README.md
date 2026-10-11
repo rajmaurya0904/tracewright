@@ -92,7 +92,23 @@ Run `audit` against a clean session and the command exits 0 with `no violations 
 
 ## FAQ
 
-TODO.
+**Which event types are supported?**
+Four kinds: `tool_call`, `shell_command`, `file_edit`, and `network_call`. `tool_call` events appear in the timeline but the policy does not check them. `shell_command` is checked against `allowed_shell_prefixes`, `file_edit` against `allowed_write_prefixes`, and `network_call` against `deny_network` and `allowed_network_hosts`. An unknown `type`, a missing field, or a line that is not a JSON object stops the load and reports the line number.
+
+**What does a policy file look like?**
+A YAML (`.yaml`/`.yml`) or TOML (`.toml`) file with these optional keys:
+
+- `allowed_write_prefixes`: list of path prefixes that writes may target. Default: `[]`, so no writes are allowed.
+- `deny_network`: boolean. Default: `true`.
+- `allowed_network_hosts`: list of hosts allowed when `deny_network` is `false`. Default: `[]`.
+- `allowed_shell_prefixes`: list of command prefixes that may run. Default: `[]`, so no commands are allowed.
+
+Unknown keys, wrong value types, and empty files are errors. Prefix matching is plain string matching against the path or command recorded in the event. A repo-relative path must match the form it was recorded in, so `.` does not match `src/app.py` and that write is flagged. Use `./` in the policy and record paths as `./src/app.py`. Shell prefixes also match partial words, so `git` also matches `gitk`.
+
+**What exit codes does `audit` use in CI?**
+`audit` exits 0 when no violations are found and 1 when any are found. Violations are printed to stdout. Other errors, such as a missing file or a malformed session or policy, also exit 1, with an `error:` message on stderr. To tell them apart in CI, treat any stderr output as an error. Bad command-line arguments exit 2.
+
+`replay` exits 0 on success, even when `--policy` marks violations. Use `audit` to gate a build.
 
 ## License
 
