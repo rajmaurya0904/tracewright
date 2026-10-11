@@ -106,3 +106,15 @@ def test_load_session_non_object_line_raises_with_line_number(tmp_path: Path) ->
 
     with pytest.raises(ValueError, match=r"invalid event on line 2: event must be a JSON object"):
         load_session(session_file)
+
+
+def test_load_session_missing_field_raises_with_line_number_and_field(tmp_path: Path) -> None:
+    session_file = tmp_path / "session.jsonl"
+    session_file.write_text(
+        '{"type": "shell_command", "timestamp": "t", "actor": "a", "command": "ls"}\n'
+    )
+
+    with pytest.raises(
+        ValueError, match=r"invalid event on line 1: missing required field 'cwd'"
+    ):
+        load_session(session_file)
