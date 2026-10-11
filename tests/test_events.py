@@ -276,3 +276,14 @@ def test_tool_call_with_nested_arguments() -> None:
     event = parse_event(data)
     assert isinstance(event, ToolCallEvent)
     assert event.to_dict() == data
+
+
+@pytest.mark.parametrize("bad_input", [["tool_call"], "tool_call", 5, None])
+def test_parse_event_rejects_non_object_input(bad_input) -> None:
+    with pytest.raises(ValueError, match="event must be a JSON object"):
+        parse_event(bad_input)
+
+
+def test_parse_event_rejects_non_string_type() -> None:
+    with pytest.raises(ValueError, match="event type must be a string, got list"):
+        parse_event({"type": ["tool_call"], "timestamp": "t", "actor": "a"})

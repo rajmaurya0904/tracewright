@@ -117,7 +117,11 @@ def _require(data: dict[str, Any], field: str) -> Any:
 
 def parse_event(data: dict[str, Any]) -> Event:
     """Dispatch a raw dict to the appropriate Event subclass based on its `type` field."""
+    if not isinstance(data, dict):
+        raise ValueError(f"event must be a JSON object, got {type(data).__name__}")
     event_type = _require(data, "type")
+    if not isinstance(event_type, str):
+        raise ValueError(f"event type must be a string, got {type(event_type).__name__}")
     try:
         event_cls = _EVENT_TYPES[event_type]
     except KeyError:
