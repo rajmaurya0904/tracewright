@@ -70,3 +70,11 @@ def test_load_policy_unsupported_extension_raises(tmp_path: Path) -> None:
 
     with pytest.raises(ValueError, match="unsupported policy file extension"):
         load_policy(policy_file)
+
+
+def test_load_policy_empty_file_raises(tmp_path: Path) -> None:
+    policy_file = tmp_path / "policy.yaml"
+    policy_file.write_text("   \n\n")
+
+    with pytest.raises(ValueError, match="policy file is empty"):
+        load_policy(policy_file)
