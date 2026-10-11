@@ -1,10 +1,10 @@
-from auto_agent_run_replay_and_guardrail_audit.events import (
+from tracewright.events import (
     FileEditEvent,
     NetworkCallEvent,
     ShellCommandEvent,
 )
-from auto_agent_run_replay_and_guardrail_audit.guardrail import check_events
-from auto_agent_run_replay_and_guardrail_audit.policy import Policy
+from tracewright.guardrail import check_events
+from tracewright.policy import Policy
 
 
 def test_write_outside_repo_is_flagged() -> None:

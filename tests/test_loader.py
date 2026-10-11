@@ -1,11 +1,11 @@
 from pathlib import Path
 
-from auto_agent_run_replay_and_guardrail_audit.events import (
+from tracewright.events import (
     NetworkCallEvent,
     ShellCommandEvent,
     ToolCallEvent,
 )
-from auto_agent_run_replay_and_guardrail_audit.loader import load_session
+from tracewright.loader import load_session
 
 FIXTURE = Path(__file__).parent / "fixtures" / "session.jsonl"
 

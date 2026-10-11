@@ -1,9 +1,9 @@
-from auto_agent_run_replay_and_guardrail_audit.events import (
+from tracewright.events import (
     FileEditEvent,
     NetworkCallEvent,
     ShellCommandEvent,
 )
-from auto_agent_run_replay_and_guardrail_audit.timeline import render_timeline
+from tracewright.timeline import render_timeline
 
 EVENTS = [
     FileEditEvent(

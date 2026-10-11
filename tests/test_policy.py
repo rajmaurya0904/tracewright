@@ -2,7 +2,7 @@ from pathlib import Path
 
 import pytest
 
-from auto_agent_run_replay_and_guardrail_audit.policy import Policy, load_policy
+from tracewright.policy import Policy, load_policy
 
 EXAMPLE_POLICY = Path(__file__).parent.parent / "examples" / "policy.yaml"
 

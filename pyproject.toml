@@ -1,5 +1,5 @@
 [project]
-name = "auto-agent-run-replay-and-guardrail-audit"
+name = "tracewright"
 version = "0.1.0"
 description = "Replays recorded agent sessions (tool calls, shell commands, file edits) as a readable timeline and flags actions outside a configurable policy, such as writes outside the repo or network calls. For teams that want an audit trail without a full runtime."
 requires-python = ">=3.11"
@@ -13,14 +13,14 @@ dev = [
 ]
 
 [project.scripts]
-agent-audit = "auto_agent_run_replay_and_guardrail_audit.cli:main"
+agent-audit = "tracewright.cli:main"
 
 [build-system]
 requires = ["setuptools>=68"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools.packages.find]
-include = ["auto_agent_run_replay_and_guardrail_audit*"]
+include = ["tracewright*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

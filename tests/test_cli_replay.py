@@ -7,7 +7,7 @@ FIXTURE = Path(__file__).parent / "fixtures" / "session.jsonl"
 
 def _run(*args: str) -> subprocess.CompletedProcess[str]:
     return subprocess.run(
-        [sys.executable, "-m", "auto_agent_run_replay_and_guardrail_audit.cli", *args],
+        [sys.executable, "-m", "tracewright.cli", *args],
         capture_output=True,
         text=True,
     )
