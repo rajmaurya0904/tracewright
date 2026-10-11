@@ -13,7 +13,7 @@ dev = [
 ]
 
 [project.scripts]
-agent-audit = "tracewright.cli:main"
+tracewright = "tracewright.cli:main"
 
 [build-system]
 requires = ["setuptools>=68"]

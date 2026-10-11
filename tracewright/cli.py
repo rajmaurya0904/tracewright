@@ -40,7 +40,7 @@ def _audit(args: argparse.Namespace) -> int:
 
 
 def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(prog="agent-audit")
+    parser = argparse.ArgumentParser(prog="tracewright")
     subparsers = parser.add_subparsers(dest="command", required=True)
 
     replay_parser = subparsers.add_parser(

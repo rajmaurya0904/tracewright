@@ -14,16 +14,16 @@ Sessions are JSONL files with one event per line. Each event has a `type` of `to
 
 ```bash
 # Print a recorded session as a timeline, one line per event
-agent-audit replay path/to/session.jsonl
+tracewright replay path/to/session.jsonl
 
 # Mark each event that breaks a policy, inline in the timeline
-agent-audit replay path/to/session.jsonl --policy path/to/policy.yaml
+tracewright replay path/to/session.jsonl --policy path/to/policy.yaml
 
 # Show only the events that break the policy (requires --policy)
-agent-audit replay path/to/session.jsonl --policy path/to/policy.yaml --only-violations
+tracewright replay path/to/session.jsonl --policy path/to/policy.yaml --only-violations
 
 # Audit a session against a policy; exits 1 if any violation is found
-agent-audit audit path/to/session.jsonl --policy path/to/policy.yaml
+tracewright audit path/to/session.jsonl --policy path/to/policy.yaml
 ```
 
 Options:
@@ -51,7 +51,7 @@ allowed_shell_prefixes:
 Replay the session as a timeline:
 
 ```bash
-agent-audit replay examples/session.jsonl
+tracewright replay examples/session.jsonl
 ```
 
 ```text
@@ -66,7 +66,7 @@ agent-audit replay examples/session.jsonl
 Show only the events that break the policy:
 
 ```bash
-agent-audit replay examples/session.jsonl --policy examples/policy.yaml --only-violations
+tracewright replay examples/session.jsonl --policy examples/policy.yaml --only-violations
 ```
 
 ```text
@@ -78,7 +78,7 @@ agent-audit replay examples/session.jsonl --policy examples/policy.yaml --only-v
 Audit the session. Each violation is listed with its rule, and the command exits 1:
 
 ```bash
-agent-audit audit examples/session.jsonl --policy examples/policy.yaml
+tracewright audit examples/session.jsonl --policy examples/policy.yaml
 echo $?   # 1
 ```
 
