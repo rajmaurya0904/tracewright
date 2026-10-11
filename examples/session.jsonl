@@ -1,4 +1,6 @@
 {"type": "tool_call", "timestamp": "2026-01-01T00:00:00Z", "actor": "agent-1", "tool_name": "Read", "arguments": {"path": "README.md"}}
 {"type": "shell_command", "timestamp": "2026-01-01T00:00:01Z", "actor": "agent-1", "command": "pytest -q", "cwd": "."}
-{"type": "file_edit", "timestamp": "2026-01-01T00:00:02Z", "actor": "agent-1", "path": "tracewright/cli.py", "diff": "+print('hi')"}
-{"type": "network_call", "timestamp": "2026-01-01T00:00:03Z", "actor": "agent-1", "host": "api.example.com", "method": "GET"}
+{"type": "file_edit", "timestamp": "2026-01-01T00:00:02Z", "actor": "agent-1", "path": "./tracewright/cli.py", "diff": "+print('hi')"}
+{"type": "shell_command", "timestamp": "2026-01-01T00:00:03Z", "actor": "agent-1", "command": "rm -rf build", "cwd": "."}
+{"type": "file_edit", "timestamp": "2026-01-01T00:00:04Z", "actor": "agent-1", "path": "/etc/hosts", "diff": "+127.0.0.1 example.test"}
+{"type": "network_call", "timestamp": "2026-01-01T00:00:05Z", "actor": "agent-1", "host": "api.example.com", "method": "GET"}
